@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MT5 — أساسيات التداول</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f5;
+  --slide:#ffffff;
+  --soft:#f6f8fb;
+  --line:#e2e8f0;
+  --line2:#cfd8e3;
+  --ink:#16233a;
+  --muted:#3d4e66;
+  --green:#0a9c62;
+  --green-bg:#e5f6ee;
+  --green-line:#a8dcc2;
+  --red:#de3d4b;
+  --red-bg:#fdecec;
+  --red-line:#f2b9bf;
+  --amber:#dd8500;
+  --amber-bg:#fdf3e2;
+  --amber-line:#f0d29c;
+  --navy:#2b4a77;
+  --mono:'JetBrains Mono',monospace;
+  --ar:'IBM Plex Sans Arabic',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:var(--ar);color:var(--ink)}
+
+/* ---------- backdrop ---------- */
+.bg-grid{position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(#e0e6ee 1px,transparent 1px),linear-gradient(90deg,#e0e6ee 1px,transparent 1px);
+  background-size:56px 56px;opacity:.55}
+.bg-glow{position:fixed;z-index:0;border-radius:50%;filter:blur(110px);opacity:.16;pointer-events:none}
+.g1{width:600px;height:600px;background:#7fd6ae;top:-260px;right:-160px}
+.g2{width:520px;height:520px;background:#f5b3ba;bottom:-240px;left:-140px}
+.g3{width:420px;height:420px;background:#bcd3f2;top:40%;left:35%}
+
+/* ---------- deck ---------- */
+.stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:1}
+.deck{width:1280px;height:720px;position:relative;transform-origin:center center}
+.slide{position:absolute;inset:0;opacity:0;visibility:hidden;transform:translateY(14px);
+  transition:opacity .5s ease,transform .5s ease,visibility .5s;
+  padding:34px 48px;background:var(--slide);border:1px solid var(--line);border-radius:20px;
+  box-shadow:0 18px 50px rgba(22,35,58,.08);overflow:hidden}
+.slide.active{opacity:1;visibility:visible;transform:none}
+
+/* stagger reveal */
+.r{opacity:0}
+.active .r{animation:up .6s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0s)}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+
+/* ---------- shared ---------- */
+.kicker{font-family:var(--mono);font-size:14px;letter-spacing:.24em;color:var(--amber);text-transform:uppercase;display:flex;align-items:center;gap:12px;font-weight:700}
+.kicker::before{content:'';width:34px;height:2.5px;background:var(--amber);border-radius:2px;flex-shrink:0}
+h2.title{font-size:48px;font-weight:700;margin:8px 0 6px;line-height:1.22}
+.title .en{font-family:var(--mono);color:var(--green);font-size:.62em;font-weight:800}
+.sub{color:var(--muted);font-size:17px;max-width:1120px;line-height:1.85}
+.ltr{direction:ltr;unicode-bidi:isolate;font-family:var(--mono)}
+b.g{color:var(--green)} b.r{color:var(--red)} b.a{color:var(--amber)}
+
+/* ---------- نصوص أوضح وأثقل ---------- */
+.sub,.pillar p,.mrow p,.panel>p,.bs-card p,.tool p,.chk p,.ohlc div,.bb div,.tf,.trend,
+.s5-note,.eq-cap,.close-card p,.video-cta p,.defcard,.tw-hint,.term-hint,.anat-cap,.swap-note,
+.s3-warn,.wick-note,.lad-note,.imp-lab,.demo-cap,.s2-note,.rule-card p,.pos-row .ar,
+.lv .ar,.ladder h3 .ar,.eqpanel .lab .ar,.quote,.pillar h4,.mrow h4,.panel-h,.tool h4,.chk h4
+{font-weight:500}
+
+/* ticker strip */
+.ticker{position:fixed;bottom:0;left:0;right:0;z-index:2;height:38px;border-top:1px solid var(--line);background:rgba(255,255,255,.9);backdrop-filter:blur(6px);overflow:hidden;display:flex;align-items:center}
+.ticker-track{display:flex;gap:54px;white-space:nowrap;animation:tick 30s linear infinite;font-family:var(--mono);font-size:13.5px;direction:ltr}
+.ticker-track span{color:var(--muted)}
+.ticker-track span b{font-weight:700;color:var(--ink)}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.up{color:var(--green)!important}.dn{color:var(--red)!important}
+
+/* nav */
+.hud{position:fixed;bottom:calc(54px + env(safe-area-inset-bottom));left:0;right:0;z-index:5;display:flex;justify-content:center;align-items:center;gap:20px}
+.hud button{background:#fff;border:1px solid var(--line2);color:var(--ink);width:46px;height:46px;border-radius:13px;font-family:var(--mono);font-size:17px;cursor:pointer;transition:.2s;box-shadow:0 4px 14px rgba(22,35,58,.06);touch-action:manipulation}
+.hud button:hover{border-color:var(--green);color:var(--green);transform:translateY(-2px)}
+.counter{font-family:var(--mono);font-size:14px;color:var(--muted);letter-spacing:.2em;background:#fff;border:1px solid var(--line);padding:11px 18px;border-radius:13px}
+.counter b{color:var(--ink)}
+.progress{position:fixed;top:0;right:0;height:3px;background:linear-gradient(90deg,var(--green),var(--amber));z-index:6;transition:width .45s ease;border-radius:0 0 0 3px}
+.pages{position:fixed;top:20px;left:28px;z-index:5;display:flex;gap:7px;direction:ltr}
+.pages i{width:20px;height:4px;border-radius:2px;background:#c8d2de;transition:.3s;cursor:pointer}
+.pages i.on{background:var(--green);width:30px}
+
+/* swipe hint (mobile only) */
+.swipe-hint{display:none;position:fixed;bottom:calc(104px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:6;font-size:12.5px;color:var(--muted);background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:99px;padding:7px 16px;white-space:nowrap;pointer-events:none;box-shadow:0 6px 18px rgba(22,35,58,.1);animation:hintFade 6s ease both;font-weight:500}
+@keyframes hintFade{0%,75%{opacity:1}100%{opacity:0;visibility:hidden}}
+
+/* ============ SLIDE 1 ============ */
+.s1-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:24px;margin-top:14px;align-items:start}
+.pillar{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:10px;transition:.25s;display:flex;gap:14px;align-items:flex-start}
+.pillar:hover{border-color:var(--green-line);transform:translateX(-3px)}
+.pillar .ic{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.ic-g{background:var(--green-bg);color:var(--green)}
+.ic-a{background:var(--amber-bg);color:var(--amber)}
+.ic-n{background:#e9eff8;color:var(--navy)}
+.pillar h4{font-size:18.5px;margin-bottom:4px;line-height:1.4}
+.pillar h4 code{font-family:var(--mono);color:var(--green);font-size:.92em;font-weight:700}
+.pillar p{font-size:14.5px;color:var(--muted);line-height:1.72}
+
+/* terminal mock */
+.terminal{background:#fff;border:1px solid var(--line2);border-radius:16px;overflow:hidden;box-shadow:0 14px 36px rgba(22,35,58,.09)}
+.term-bar{display:flex;align-items:center;gap:7px;padding:11px 16px;background:var(--soft);border-bottom:1px solid var(--line)}
+.term-bar .dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.dot.rd{background:#ff5f57}.dot.yl{background:#febc2e}.dot.gn{background:#28c840}
+.term-title{font-family:var(--mono);font-size:13px;color:var(--muted);margin-right:8px;letter-spacing:.06em}
+.term-tabs{display:flex;gap:8px;padding:11px 16px 0;border-bottom:1px solid var(--line)}
+.term-tab{font-family:var(--mono);font-size:14px;padding:9px 18px;border:1px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;background:var(--soft);color:var(--muted);cursor:pointer;transition:.2s;touch-action:manipulation}
+.term-tab:hover{color:var(--ink)}
+.term-tab.on{background:var(--green-bg);border-color:var(--green-line);color:var(--green);font-weight:700}
+.term-body{padding:14px 18px;min-height:240px}
+.tview{display:none}.tview.on{display:block;animation:up .35s ease both}
+.tw-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:14.5px;direction:ltr}
+.tw-table th{font-size:11.5px;letter-spacing:.14em;color:var(--muted);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);font-weight:500}
+.tw-table td{padding:9px 8px;border-bottom:1px solid var(--soft)}
+.tw-table td:first-child{color:var(--ink);font-weight:700}
+.tw-spread{color:var(--amber);font-size:12.5px}
+.tw-hint{font-family:var(--ar);font-size:13.5px;color:var(--muted);margin-top:12px;text-align:center}
+.tw-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.tw-stat{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:10px 13px}
+.tw-stat small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--muted)}
+.tw-stat b{font-family:var(--mono);font-size:18px;direction:ltr;display:inline-block}
+.pos-row{display:flex;justify-content:space-between;align-items:center;background:var(--green-bg);border:1px solid var(--green-line);border-radius:10px;padding:11px 15px;font-family:var(--mono);font-size:14px;direction:ltr;gap:8px;flex-wrap:wrap}
+.pos-row .ar{font-family:var(--ar);font-size:12.5px;color:var(--muted)}
+.term-hint{padding:10px 16px;border-top:1px dashed var(--line);font-size:13.5px;color:var(--muted);text-align:center;background:var(--soft)}
+
+/* ============ SLIDE 2 ============ */
+.s2-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;margin-top:12px;align-items:start}
+.mrow{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 14px;margin-bottom:8px;border-inline-start:4px solid var(--c,var(--green));transition:.2s}
+.mrow:hover{transform:translateX(-3px);box-shadow:0 6px 18px rgba(22,35,58,.06)}
+.mrow h4{font-family:var(--mono);font-size:16px;color:var(--c,var(--green));direction:ltr;text-align:right}
+.mrow h4 .ar{font-family:var(--ar);color:var(--ink);font-size:14px;font-weight:600}
+.mrow p{font-size:14px;color:var(--muted);line-height:1.62;margin-top:3px}
+.eqpanel{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:16px 20px;margin-bottom:12px}
+.eqpanel .lab{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);margin-bottom:12px;display:flex;justify-content:space-between}
+.eqpanel .lab .ar{font-family:var(--ar);letter-spacing:0;color:var(--ink);font-weight:600;font-size:14px}
+.eq-row{display:flex;justify-content:center;align-items:center;gap:10px;direction:ltr;flex-wrap:wrap}
+.eq-box{border-radius:10px;padding:9px 15px;font-family:var(--mono);background:#fff;border:1px solid var(--line2)}
+.eq-box small{display:block;font-size:10.5px;letter-spacing:.12em;color:var(--muted);margin-bottom:3px}
+.eq-box b{font-size:22px}
+.eq-g{background:var(--green-bg);border-color:var(--green-line)}.eq-g b{color:var(--green)}
+.eq-a{background:var(--amber-bg);border-color:var(--amber-line)}.eq-a b{color:var(--amber)}
+.eq-r{background:var(--red-bg);border-color:var(--red-line)}.eq-r b{color:var(--red)}
+.op{font-family:var(--mono);font-size:23px;color:var(--muted)}
+.eq-cap{font-size:13.5px;color:var(--muted);line-height:1.7;margin-top:10px;border-top:1px dashed var(--line);padding-top:9px}
+.s2-note{background:var(--amber-bg);border:1px solid var(--amber-line);border-radius:12px;padding:11px 17px;font-size:14.5px;color:#6b4a00;display:flex;gap:10px;align-items:center;margin-top:2px;line-height:1.7}
+
+/* ============ SLIDE 3 ============ */
+.s3-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:20px;margin-top:12px;align-items:start}
+.bs-card{border-radius:14px;padding:12px 18px;border:1px solid;margin-bottom:10px}
+.bs-buy{background:linear-gradient(160deg,var(--green-bg),#fff 70%);border-color:var(--green-line)}
+.bs-sell{background:linear-gradient(160deg,var(--red-bg),#fff 70%);border-color:var(--red-line)}
+.bs-card h3{font-family:var(--mono);font-size:21px;display:flex;align-items:center;gap:10px;direction:ltr;justify-content:flex-end}
+.bs-buy h3{color:var(--green)}.bs-sell h3{color:var(--red)}
+.bs-card p{margin-top:6px;font-size:14.5px;line-height:1.7;color:#33445c}
+.panel{background:#fff;border:1px solid var(--line);border-radius:15px;padding:13px 18px;margin-bottom:10px}
+.panel-h{font-size:17px;margin-bottom:5px}
+.panel-h code{font-family:var(--mono);color:var(--green);font-size:.92em}
+.panel>p{font-size:14px;color:var(--muted);line-height:1.7}
+.lots{display:flex;gap:10px;margin:10px 0}
+.lot{flex:1;background:var(--soft);border:1px solid var(--line2);border-radius:10px;padding:9px;text-align:center;font-family:var(--mono);transition:.2s}
+.lot:hover{border-color:var(--amber);transform:translateY(-2px)}
+.lot small{display:block;font-family:var(--ar);font-size:12px;color:var(--muted);margin-bottom:3px}
+.lot b{font-size:20px;color:var(--amber)}
+.lot span{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;direction:ltr}
+.imp-lab{font-size:13.5px;color:var(--muted);margin-bottom:7px}
+.imp{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-family:var(--mono);font-size:13.5px;direction:ltr}
+.imp .nm{width:38px;color:var(--ink);font-weight:700}
+.imp .bar{height:15px;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--green-line));flex-shrink:0}
+.imp .val{color:var(--muted);white-space:nowrap}
+.cost2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cost2 .panel{margin-bottom:0}
+.quote{display:flex;justify-content:space-between;align-items:center;direction:ltr;background:var(--soft);border:1px solid var(--line2);border-radius:10px;padding:9px 13px;margin:10px 0 8px;font-family:var(--mono);font-size:13px;gap:6px}
+.quote .q-sell{color:var(--red);font-weight:700}
+.quote .q-buy{color:var(--green);font-weight:700}
+.quote .q-mid{font-size:11px;color:var(--amber);border:1px dashed var(--amber-line);background:var(--amber-bg);padding:3px 9px;border-radius:99px;font-weight:700;white-space:nowrap}
+.s3-warn{background:var(--amber-bg);border:1px solid var(--amber-line);border-radius:12px;padding:10px 15px;font-size:14px;color:#6b4a00;line-height:1.7;margin-bottom:10px}
+.swap-note{background:var(--soft);border:1px dashed var(--line2);border-radius:12px;padding:10px 15px;font-size:14px;color:var(--muted);line-height:1.7}
+.swap-note b{color:var(--navy)}
+
+/* ============ SLIDE 4 ============ */
+.defs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.defcard{border-radius:13px;padding:12px 17px;border:1px solid;font-size:15px;line-height:1.72;color:#33445c}
+.defcard b{font-family:var(--mono)}
+.dc-sl{background:var(--red-bg);border-color:var(--red-line)}.dc-sl b{color:var(--red)}
+.dc-tp{background:var(--green-bg);border-color:var(--green-line)}.dc-tp b{color:var(--green)}
+.sl-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:12px}
+.ladder{background:var(--soft);border:1px solid var(--line);border-radius:15px;padding:13px 20px 15px}
+.ladder h3{font-family:var(--mono);font-size:15px;letter-spacing:.05em;margin-bottom:10px;display:flex;justify-content:space-between;direction:ltr;gap:8px;flex-wrap:wrap}
+.ladder h3 .ar{font-family:var(--ar);color:var(--muted);font-size:13.5px}
+.lv{display:flex;justify-content:space-between;align-items:center;padding:9px 15px;border-radius:10px;margin-bottom:8px;font-family:var(--mono);font-size:14.5px;direction:ltr;font-weight:700;gap:8px}
+.lv .ar{font-family:var(--ar);font-weight:500;font-size:13.5px;color:var(--muted)}
+.lv-tp{background:var(--green-bg);border:1.5px dashed var(--green);color:var(--green)}
+.lv-en{background:#fff;border:1.5px solid var(--line2);color:var(--ink)}
+.lv-sl{background:var(--red-bg);border:1.5px dashed var(--red);color:var(--red)}
+.lad-note{font-size:13px;color:var(--muted);text-align:center;margin-top:2px}
+.s4-bottom{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.close-card{background:#fff;border:1px solid var(--amber-line);border-radius:13px;padding:12px 16px;display:flex;gap:13px;align-items:flex-start}
+.close-card .ic{width:38px;height:38px;border-radius:10px;background:var(--amber-bg);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.close-card b{font-family:var(--mono);color:var(--amber);font-size:15.5px}
+.close-card p{font-size:14px;color:var(--muted);line-height:1.68;margin-top:3px}
+.rule-card{background:linear-gradient(120deg,var(--navy),#3d5f92);border-radius:13px;padding:12px 19px;color:#fff;display:flex;align-items:center;gap:13px}
+.rule-card .ic{font-size:24px;flex-shrink:0}
+.rule-card p{font-size:15px;line-height:1.75}
+.rule-card b{color:#ffd98a}
+
+/* ============ SLIDE 5 ============ */
+.s5-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:10px;align-items:start}
+.anat{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:12px 10px 6px;direction:ltr}
+.anat svg{width:100%;display:block}
+.anat-cap{font-size:13.5px;color:var(--muted);text-align:center;padding:6px 10px 8px;border-top:1px dashed var(--line);margin-top:4px}
+.wick-note{margin-top:10px;background:#fff;border:1px dashed var(--line2);border-radius:12px;padding:10px 15px;font-size:14px;color:var(--muted);line-height:1.72}
+.wick-note b{color:var(--ink)}
+.ohlc{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.ohlc div{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:14px;color:var(--muted);line-height:1.6}
+.ohlc b{font-family:var(--mono);font-size:15.5px}
+.bb{display:flex;gap:10px;margin:10px 0}
+.bb div{flex:1;border-radius:11px;padding:9px 14px;font-size:14px;line-height:1.65;color:#33445c}
+.bb .bu{background:var(--green-bg);border:1px solid var(--green-line)}
+.bb .be{background:var(--red-bg);border:1px solid var(--red-line)}
+.bb b{font-family:var(--mono)}
+.tfs{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:4px}
+.tf{background:#fff;border:1px solid var(--line2);border-radius:10px;padding:8px 13px;font-size:13.5px;color:var(--muted);line-height:1.55;transition:.2s}
+.tf:hover{border-color:var(--amber)}
+.tf b{font-family:var(--mono);color:var(--amber);font-size:14.5px;margin-left:6px}
+.s5-note{margin-top:10px;font-size:14px;color:var(--muted);background:var(--soft);border:1px dashed var(--line2);border-radius:11px;padding:10px 15px;line-height:1.72}
+
+/* ============ SLIDE 6 ============ */
+.s6-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:10px;align-items:start}
+.tool{display:flex;gap:13px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 15px;margin-bottom:9px;transition:.2s}
+.tool:hover{border-color:var(--amber-line);box-shadow:0 6px 18px rgba(22,35,58,.05)}
+.tool .ic{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tool h4{font-size:17px}
+.tool h4 b{font-family:var(--mono)}
+.tool p{font-size:14px;color:var(--muted);line-height:1.68;margin-top:3px}
+.trends{display:flex;gap:10px}
+.trend{flex:1;background:var(--soft);border:1px solid var(--line);border-radius:11px;padding:9px 13px;font-size:13.5px;color:var(--muted);line-height:1.65}
+.trend b{font-family:var(--mono);display:block;font-size:14px;margin-bottom:2px}
+.trend.u b{color:var(--green)}.trend.d b{color:var(--red)}
+.chart-demo{background:var(--soft);border:1px solid var(--line2);border-radius:16px;padding:12px;direction:ltr}
+.chart-demo svg{width:100%;display:block}
+.demo-cap{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.12em;text-align:center;padding:8px 6px 4px;border-top:1px dashed var(--line);margin-top:6px}
+.video-cta{margin-top:12px;background:linear-gradient(120deg,var(--green-bg),#fff 75%);border:1px solid var(--green-line);border-radius:15px;padding:14px 20px;display:flex;align-items:center;gap:16px}
+.video-cta .play{width:48px;height:48px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;box-shadow:0 6px 20px rgba(10,156,98,.35)}
+.video-cta b{color:var(--green);font-family:var(--mono);font-size:16px}
+.video-cta p{font-size:14px;color:#33445c;line-height:1.7;margin-top:3px}
+.video-cta .steps{font-family:var(--mono);font-size:11.5px;color:var(--green);direction:ltr;margin-top:6px;letter-spacing:.02em;word-break:break-word}
+
+/* ============ SLIDE 7 ============ */
+.s7-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.chk{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 16px;transition:.2s}
+.chk:hover{border-color:var(--green-line);transform:translateY(-3px);box-shadow:0 8px 22px rgba(22,35,58,.07)}
+.chk .num{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--amber);background:var(--amber-bg);border:1px solid var(--amber-line);width:31px;height:31px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:9px}
+.chk h4{font-size:17px;margin-bottom:5px}
+.chk p{font-size:13.5px;color:var(--muted);line-height:1.68}
+.s7-final{margin-top:16px;background:linear-gradient(120deg,var(--navy),#3d5f92);border-radius:15px;padding:16px 22px;color:#fff;display:flex;align-items:center;gap:16px}
+.s7-final .ic{font-size:30px;flex-shrink:0}
+.s7-final p{font-size:15.5px;line-height:1.8}
+.s7-final b{color:#ffd98a}
+
+/* ============ SLIDE 8 — FULLSCREEN VIDEO ============ */
+.slide.vslide{padding:0;background:#05080f;border-color:#05080f}
+#videoHolder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+#videoHolder video,#videoHolder iframe{width:100%;height:100%;object-fit:contain;border:0;background:transparent;display:block}
+.vid-open{position:absolute;top:14px;left:14px;z-index:4;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#cfe0f5;font-family:var(--mono);font-size:15px;cursor:pointer;transition:.2s;backdrop-filter:blur(4px)}
+.vid-open:hover{background:rgba(255,255,255,.16);color:#fff}
+
+/* ============================================================
+   ============ MOBILE / RESPONSIVE (≤920px) ==================
+   ============================================================ */
+@media (max-width:920px){
+  .bg-grid{background-size:40px 40px;opacity:.4}
+  .bg-glow{display:none}
+
+  .stage{align-items:stretch}
+  .deck{width:100%;height:calc(100% - 32px);transform:none!important}
+  .slide{
+    padding:18px calc(16px + env(safe-area-inset-right)) 100px calc(16px + env(safe-area-inset-left));
+    border-radius:14px;
+    overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    touch-action:pan-x pan-y;
+  }
+
+  .kicker{font-size:11px;letter-spacing:.16em;gap:8px}
+  .kicker::before{width:22px;height:2px}
+  h2.title{font-size:30px;margin:6px 0 5px;line-height:1.3}
+  .title .en{font-size:.6em}
+  .sub{font-size:15px;line-height:1.75;margin-bottom:2px}
+
+  .s1-grid,.s2-grid,.s3-grid,.s5-grid,.s6-grid,.sl-grid,.s4-bottom,.defs{grid-template-columns:1fr;gap:12px}
+  .cost2{grid-template-columns:1fr;gap:10px}
+  .cost2 .panel{margin-bottom:10px}
+  .s7-grid{grid-template-columns:1fr;gap:10px;margin-top:12px}
+  .ohlc{gap:7px}
+  .tfs{gap:7px}
+  .bb{gap:7px}
+
+  /* SLIDE 8 عالموبايل: فيديو بملء الشاشة برضو */
+  .slide.vslide{padding:0;overflow:hidden;border-radius:14px}
+
+  /* SLIDE 1 */
+  .pillar{padding:11px 13px;margin-bottom:9px;gap:11px}
+  .pillar .ic{width:38px;height:38px;font-size:18px;border-radius:10px}
+  .pillar h4{font-size:16px}
+  .pillar p{font-size:13.5px}
+  .terminal{border-radius:14px}
+  .term-bar{padding:9px 13px}
+  .term-title{font-size:11.5px;margin-right:6px}
+  .term-tabs{padding:9px 12px 0;gap:6px}
+  .term-tab{font-size:12.5px;padding:8px 13px}
+  .term-body{padding:12px 13px;min-height:210px}
+  .tw-table{font-size:13px}
+  .tw-stat b{font-size:16px}
+  .tw-stat small{font-size:10px}
+  .pos-row{font-size:12px;padding:10px 12px}
+  .term-hint,.tw-hint{font-size:12px}
+
+  /* SLIDE 2 */
+  .mrow{padding:9px 12px;margin-bottom:8px}
+  .mrow h4{font-size:14.5px}
+  .mrow h4 .ar{font-size:13px}
+  .mrow p{font-size:13px}
+  .eqpanel{padding:13px 14px;margin-bottom:10px}
+  .eq-box{padding:8px 12px}
+  .eq-box b{font-size:19px}
+  .op{font-size:19px}
+  .eq-cap{font-size:12.5px}
+  .s2-note{font-size:13px;padding:10px 14px}
+
+  /* SLIDE 3 */
+  .bs-card{padding:11px 15px}
+  .bs-card h3{font-size:18px}
+  .bs-card p{font-size:13.5px}
+  .panel{padding:12px 14px}
+  .panel-h{font-size:15.5px}
+  .panel>p{font-size:13.5px}
+  .lots{gap:7px}
+  .lot{padding:8px 6px}
+  .lot b{font-size:17px}
+  .lot small{font-size:11px}
+  .lot span{font-size:10px}
+  .imp{font-size:12.5px}
+  .quote{flex-wrap:wrap;justify-content:center;font-size:11.5px;gap:6px}
+  .s3-warn,.swap-note{font-size:13px}
+
+  /* SLIDE 4 */
+  .defcard{font-size:13.5px;padding:11px 14px}
+  .ladder{padding:12px 14px 14px}
+  .ladder h3{font-size:13.5px}
+  .ladder h3 .ar{font-size:12px}
+  .lv{font-size:12.5px;padding:8px 11px}
+  .lv .ar{font-size:11.5px}
+  .lad-note{font-size:11.5px}
+  .close-card{padding:11px 13px}
+  .close-card b{font-size:14px}
+  .close-card p,.rule-card p{font-size:13px}
+  .rule-card{padding:12px 15px}
+
+  /* SLIDE 5 */
+  .anat{padding:10px 8px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .anat svg{min-width:520px}
+  .anat-cap,.wick-note,.ohlc div,.bb div,.tf,.trend,.s5-note{font-size:13px}
+  .ohlc b{font-size:14px}
+
+  /* SLIDE 6 */
+  .chart-demo{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .chart-demo svg{min-width:470px}
+  .tool{padding:10px 12px;gap:11px}
+  .tool h4{font-size:15.5px}
+  .tool p{font-size:13px}
+  .demo-cap{font-size:10px}
+  .video-cta{padding:12px 15px;gap:12px}
+  .video-cta .play{width:42px;height:42px;font-size:15px}
+  .video-cta b{font-size:14.5px}
+  .video-cta p{font-size:13px}
+  .video-cta .steps{font-size:10.5px}
+
+  /* SLIDE 7 */
+  .chk{padding:11px 14px}
+  .chk h4{font-size:15.5px}
+  .chk p{font-size:13px}
+  .s7-final{padding:13px 16px;gap:12px}
+  .s7-final .ic{font-size:24px}
+  .s7-final p{font-size:13.5px}
+
+  /* التنقّل */
+  .hud{bottom:calc(40px + env(safe-area-inset-bottom));gap:12px}
+  .hud button{width:50px;height:50px;font-size:19px;border-radius:14px}
+  .counter{font-size:12.5px;padding:10px 14px}
+  .pages{top:8px;left:12px}
+  .ticker{height:30px}
+  .ticker-track{font-size:11.5px;gap:40px}
+  .swipe-hint{display:block}
+}
+
+@media (max-width:360px){
+  h2.title{font-size:26px}
+  .ohlc{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow g1"></div><div class="bg-glow g2"></div><div class="bg-glow g3"></div>
+<div class="progress" id="prog"></div>
+<div class="pages" id="pages"></div>
+
+<div class="stage"><div class="deck" id="deck">
+
+<!-- ================= SLIDE 1 ================= -->
+<section class="slide s1 active">
+  <div class="kicker r" style="--d:.05s">Module 01 · Introduction</div>
+  <h2 class="title r" style="--d:.12s">شو هي <span class="en ltr">MetaTrader 5 (MT5)?</span></h2>
+  <p class="sub r" style="--d:.2s">MT5 هي منصة التداول الأشهر والأكثر استخدامًا بالعالم — من تطوير شركة <b class="ltr">MetaQuotes</b> ومتاحة عالكمبيوتر والموبايل والويب. من خلالها منشوف أسعار الأسواق <b>لحظة بلحظة</b>، منتابع حركة السعر عالشارتات، ومننفّذ ومندير كل الصفقات من مكان واحد. المنصة بتتقسم لـ 3 نوافذ أساسية رح تشتغل عليها كل يوم:</p>
+
+  <div class="s1-grid">
+    <div>
+      <div class="pillar r" style="--d:.3s"><div class="ic ic-g">📈</div><div>
+        <h4><code>Market Watch</code> — نافذة الأسعار الحية</h4>
+        <p>كل الـ Symbols المتاحة (أزواج العملات، الذهب، الفضة، المؤشرات، النفط، العملات الرقمية) وأمامهم سعر الـ <span class="ltr">Bid / Ask</span> اللحظي. فيك تضيف أو تشيل أي Symbol بالكليك يمين ← <span class="ltr">Symbols</span> — وركّز ععدد قليل من الأدوات وابعدهم منيح.</p>
+      </div></div>
+      <div class="pillar r" style="--d:.4s"><div class="ic ic-a">🕯️</div><div>
+        <h4><code>Chart</code> — شاشة الشارت</h4>
+        <p>بتختار الـ Symbol والـ Timeframe يلي بدك ياه، وبتشوف حركة السعر بالشموع اليابانية. فيك تغيّر نوع الشارت (شموع / خط / أعمدة)، وترسم عليه كل أدوات التحليل، وتفتح أكتر من شارت لنفس العملة بأوقات مختلفة بنفس الوقت.</p>
+      </div></div>
+      <div class="pillar r" style="--d:.5s"><div class="ic ic-n">💼</div><div>
+        <h4><code>Trade</code> — تاب الحساب والصفقات</h4>
+        <p>جوا الـ Terminal: بيعرض أرقام حسابك (<span class="ltr">Balance / Equity / Margin</span>) وتحته كل الـ <span class="ltr">Open Positions</span> وربحها أو خسارتها لحظة بلحظة — ومن نفس التاب بتفتح صفقات جديدة، بتقفل المفتوحة، وبتعدّل عالـ SL والـ TP.</p>
+      </div></div>
+    </div>
+
+    <div class="terminal r" style="--d:.4s">
+      <div class="term-bar"><span class="dot rd"></span><span class="dot yl"></span><span class="dot gn"></span><span class="term-title">MetaTrader 5 · Demo Account</span></div>
+      <div class="term-tabs">
+        <button class="term-tab on" data-v="v1">Market Watch</button>
+        <button class="term-tab" data-v="v2">Chart</button>
+        <button class="term-tab" data-v="v3">Trade</button>
+      </div>
+      <div class="term-body">
+        <div class="tview on" id="v1">
+          <table class="tw-table">
+            <tr><th>SYMBOL</th><th>BID</th><th>ASK</th><th>SPREAD</th></tr>
+            <tr><td>EURUSD</td><td class="dn">1.0852</td><td class="up">1.0854</td><td class="tw-spread">2.0</td></tr>
+            <tr><td>XAUUSD</td><td class="dn">2338.10</td><td class="up">2338.70</td><td class="tw-spread">6.0</td></tr>
+            <tr><td>GBPUSD</td><td class="dn">1.2671</td><td class="up">1.2675</td><td class="tw-spread">4.0</td></tr>
+            <tr><td>USDJPY</td><td class="dn">155.70</td><td class="up">155.74</td><td class="tw-spread">4.0</td></tr>
+          </table>
+          <div class="tw-hint">الأسعار بتتحدّث لحظيًا — الأخضر هو Ask والأحمر هو Bid</div>
+        </div>
+        <div class="tview" id="v2">
+          <svg id="miniChart" viewBox="0 0 320 110"></svg>
+          <div class="tw-hint">EURUSD · M5 — حركة السعر بالشموع اليابانية</div>
+        </div>
+        <div class="tview" id="v3">
+          <div class="tw-stats">
+            <div class="tw-stat"><small>BALANCE</small><b>$1,000.00</b></div>
+            <div class="tw-stat"><small>EQUITY</small><b class="up">$1,012.50</b></div>
+            <div class="tw-stat"><small>MARGIN</small><b>$200.00</b></div>
+            <div class="tw-stat"><small>FREE MARGIN</small><b>$812.50</b></div>
+          </div>
+          <div class="pos-row"><span>EURUSD · BUY 0.10 <span class="ar">@ 1.0839</span></span><span class="up">+$12.50</span></div>
+          <div class="tw-hint">كل صفقة مفتوحة بتظهر هون مع ربحها/خسارتها اللحظية</div>
+        </div>
+      </div>
+      <div class="term-hint">👆 جرّب تضغط عالتابات فوق — هدول أهم 3 نوافذ بالمنصة</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 2 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 02 · Account Numbers</div>
+  <h2 class="title r" style="--d:.12s">افهم حسابك قبل أول صفقة <span class="en ltr">// Your Account</span></h2>
+  <p class="sub r" style="--d:.18s">الأرقام هدول كلها رح تلاقيها تحت بتاب الـ <b class="ltr">Trade</b> — لازم تعرف معنى كل وحدة قبل أول صفقة، لأن كل قرار تداول بيتبني عليها.</p>
+
+  <div class="s2-grid">
+    <div>
+      <div class="mrow r" style="--d:.28s;--c:var(--ink)"><div><h4>Balance <span class="ar">— الرصيد</span></h4><p>رصيدك «الدفتري» — محسوب من الصفقات <b>المغلقة فقط</b>. مش بيتأثر بأي صفقة مفتوحة مهما تحرك السعر، وبيزيد فيه الأرباح المثبّتة أو أي إيداع جديد.</p></div></div>
+      <div class="mrow r" style="--d:.36s;--c:var(--green)"><div><h4>Equity <span class="ar">— القيمة الفعلية</span></h4><p>قيمة حسابك <b>هلق</b> = <span class="ltr">Balance ± Floating P/L</span> — بتتحدّث لحظة بلحظة مع كل Tick، وهاد الرقم يلي بيمثل واقعك الحقيقي بالسوق.</p></div></div>
+      <div class="mrow r" style="--d:.44s;--c:var(--amber)"><div><h4>Profit / Loss <span class="ar">— العائم</span></h4><p>مجموع أرباح أو خسائر الصفقات المفتوحة حاليًا — أرقام لسا «عالورق» ومش تبعك لحد ما تقفل الصفقة وتثبّتها بالـ Balance.</p></div></div>
+      <div class="mrow r" style="--d:.52s;--c:var(--red)"><div><h4>Margin <span class="ar">— الهامش المحجوز</span></h4><p>مبلغ بيتجمّد من عند المنصة كـ«ضمان» لتشغيل صفقاتك المفتوحة — بيتحدد حسب حجم الصفقة والرافعة المالية <span class="ltr">(Leverage)</span>.</p></div></div>
+      <div class="mrow r" style="--d:.6s;--c:var(--navy)"><div><h4>Free Margin <span class="ar">— الهامش الحر</span></h4><p>يلي فاضل معك متاح لفتح صفقات جديدة = <span class="ltr">Equity − Margin</span> — وبيتأثر فورًا بأي خسارة عائمة، فانتبه قبل ما تحمّل حسابك صفقات كتير.</p></div></div>
+    </div>
+
+    <div>
+      <div class="eqpanel r" style="--d:.35s">
+        <div class="lab"><span>EQUITY</span><span class="ar">قيمة حسابك هلق</span></div>
+        <div class="eq-row">
+          <div class="eq-box"><small>BALANCE</small><b>$1,000</b></div><span class="op">+</span>
+          <div class="eq-box eq-g"><small>FLOATING</small><b>+$100</b></div><span class="op">=</span>
+          <div class="eq-box"><small>EQUITY</small><b style="color:var(--green)">$1,100</b></div>
+        </div>
+        <p class="eq-cap">صفقتك المفتوحة ماسكة <b class="g">+$100</b> عائمة → حسابك بقيمة <b class="ltr">$1,100</b> فعليًا. وإذا كانت <b class="r">−$100</b> → الإكيتي بيصير <b class="ltr">$900</b>.</p>
+      </div>
+      <div class="eqpanel r" style="--d:.5s">
+        <div class="lab"><span>FREE MARGIN</span><span class="ar">المتاح للتداول</span></div>
+        <div class="eq-row">
+          <div class="eq-box"><small>EQUITY</small><b>$1,100</b></div><span class="op">−</span>
+          <div class="eq-box eq-a"><small>MARGIN</small><b>$200</b></div><span class="op">=</span>
+          <div class="eq-box"><small>FREE</small><b style="color:var(--navy)">$900</b></div>
+        </div>
+        <p class="eq-cap">المنصة محجزة عندك <b class="a">$200</b> لصفقاتك المفتوحة → فيك تستخدم <b class="ltr">$900</b> لفتح صفقات جديدة.</p>
+      </div>
+      <div class="s2-note r" style="--d:.65s">⚡ <span><b>الفرق الجوهري:</b> الـ Balance ثابت لحد ما تقفل الصفقة — أما الـ Equity بيتحرك مع كل Tick. وكل ما الخسائر العائمة تزيد و(Equity ÷ Margin) تقرب من مستوى الـ <b>Stop Out</b> — المنصة رح تقفل صفقاتك أوتوماتيك. لهيك إدارة المخاطر مش رفاهية.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 3 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 03 · Execution & Costs</div>
+  <h2 class="title r" style="--d:.12s">Buy · Sell · Volume <span class="en ltr">// وكل التكاليف</span></h2>
+
+  <div class="s3-grid">
+    <div>
+      <div class="bs-card bs-buy r" style="--d:.22s">
+        <h3><span>▲</span> BUY / LONG</h3>
+        <p>فتح صفقة بتوقع إنو السعر <b class="g">رح يطلع</b> — بتكسب الفرق إذا السعر قفل <b>أعلى</b> من سعر دخولك. كل ما حجم الصفقة أكبر، قيمة كل نقطة بتصير أكبر.</p>
+      </div>
+      <div class="bs-card bs-sell r" style="--d:.3s">
+        <h3><span>▼</span> SELL / SHORT</h3>
+        <p>فتح صفقة بتوقع إنو السعر <b class="r">رح ينزل</b> — بتكسب إذا السعر قفل <b>أقل</b> من سعر دخولك. ما في «ممنوع البيع» — النزول فرصة ربح متل الصعود بالظبط.</p>
+      </div>
+      <div class="s3-warn r" style="--d:.4s">📌 <b>ملحوظة مهمة:</b> الـ Buy بينفّذ عسعر الـ <b class="ltr">Ask</b>، والـ Sell عالـ <b class="ltr">Bid</b> — وهاد سبب إنو كل صفقة بتبدأ بخسارة صغيرة قد الـ Spread، والسعر لازم يمشي بصالحك مسافة صغيرة أول شي حتى «تكسر» التكلفة هاي.</div>
+      <div class="swap-note r" style="--d:.48s">🌙 <b>Swap — فايدة التجديد:</b> إذا سبت الصفقة مفتوحة بعد نص الليل بتدفع أو بتاخد فايدة حسب الفرق بين أسعار الفايدة للعملتين — نقطة مهمة إذا بتفتح صفقات طويلة.</div>
+    </div>
+
+    <div>
+      <div class="panel r" style="--d:.35s">
+        <div class="panel-h"><code>Volume / Lot Size</code> — حجم الصفقة</div>
+        <p>بنحدده بالـ Lots: كل Lot أكبر = قيمة كل نقطة (<span class="ltr">Pip</span>) أكبر = تأثير أكبر عالـ <span class="ltr">Profit/Loss</span> بالاتجاهين. مثال عEURUSD: الـ 0.01 lot بيساوي <b class="ltr">$0.10</b> لكل نقطة.</p>
+        <div class="lots">
+          <div class="lot"><small>صغير · Micro</small><b>0.01</b><span>1,000 units</span></div>
+          <div class="lot"><small>متوسط · Mini</small><b>0.10</b><span>10,000 units</span></div>
+          <div class="lot"><small>كبير · Standard</small><b>1.00</b><span>100,000 units</span></div>
+        </div>
+        <div class="imp-lab">مثال — قيمة النقطة عزوج عملات أساسي، وحركة <b class="ltr">10 Pips</b>:</div>
+        <div class="imp"><span class="nm">0.01</span><span class="bar" style="width:24px"></span><span class="val">± $1</span></div>
+        <div class="imp"><span class="nm">0.10</span><span class="bar" style="width:80px"></span><span class="val">± $10</span></div>
+        <div class="imp"><span class="nm">1.00</span><span class="bar" style="width:190px"></span><span class="val">± $100</span></div>
+      </div>
+      <div class="cost2">
+        <div class="panel r" style="--d:.5s">
+          <div class="panel-h"><code>Spread</code> — فرق السعر</div>
+          <div class="quote"><span class="q-sell">SELL · Bid 1.0852</span><span class="q-mid">SPREAD 2.0</span><span class="q-buy">BUY · Ask 1.0854</span></div>
+          <p style="font-size:13.5px">الفرق بين الـ <span class="ltr">Bid</span> والـ <span class="ltr">Ask</span> — تكلفة ضمنية بتدفعها مع كل صفقة. بيوسّع وقت الأخبار، والسعر لازم يعديه حتى تدخل بمنطقة الربح.</p>
+        </div>
+        <div class="panel r" style="--d:.58s">
+          <div class="panel-h"><code>Commission</code> — العمولة</div>
+          <p style="font-size:13.5px;margin-top:6px">رسوم ممكن يفرضها الـ <span class="ltr">Broker</span> عتنفيذ كل Lot (شائعة بحسابات الـ ECN يلي سبريدها ضيق).<br>لما تقارن بين البروكرات: احسب <b class="ltr">Spread + Commission</b> مع بعض = التكلفة الحقيقية.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 4 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 04 · Risk Management</div>
+  <h2 class="title r" style="--d:.12s">Stop Loss · Take Profit · Closing <span class="en ltr">// حماية حسابك</span></h2>
+
+  <div class="defs">
+    <div class="defcard dc-sl r" style="--d:.22s"><b>Stop Loss (SL)</b> ← أمر بينقفل عنده الـ Trade <b>تلقائيًا</b> عند مستوى محدد للمساعدة بتحديد / الحد من الخسارة — أساس إدارة المخاطر. فيك تعدّله أو تشيله بأي وقت، بس القاعدة: <b>ما تفتح صفقة بدونه أبدًا</b>.</div>
+    <div class="defcard dc-tp r" style="--d:.3s"><b>Take Profit (TP)</b> ← أمر بينقفل عنده الـ Trade تلقائيًا لما توصل <b>للـ Target</b> — فيثبّت ربحك من دون ما تضل متفرج عالشاشة، ويحميك من الطمع يلي بيقلّب الربح خسارة.</div>
+  </div>
+
+  <div class="sl-grid">
+    <div class="ladder r" style="--d:.4s">
+      <h3><span style="color:var(--green)">▲ BUY SETUP</span><span class="ar">السعر صاعد ← الهدف فوق والوقاية تحت</span></h3>
+      <div class="lv lv-tp"><span>TAKE PROFIT</span><span class="ar">فوق نقطة الدخول</span></div>
+      <div class="lv lv-en"><span>ENTRY · BUY</span><span class="ar">نقطة الدخول</span></div>
+      <div class="lv lv-sl"><span>STOP LOSS</span><span class="ar">تحت نقطة الدخول</span></div>
+      <div class="lad-note">إذا السعر لمس أي مستوى → الصفقة بتتقفل تلقائيًا عند السيرفر</div>
+    </div>
+    <div class="ladder r" style="--d:.5s">
+      <h3><span style="color:var(--red)">▼ SELL SETUP</span><span class="ar">السعر هابط ← الهدف تحت والوقاية فوق</span></h3>
+      <div class="lv lv-sl"><span>STOP LOSS</span><span class="ar">فوق نقطة الدخول</span></div>
+      <div class="lv lv-en"><span>ENTRY · SELL</span><span class="ar">نقطة الدخول</span></div>
+      <div class="lv lv-tp"><span>TAKE PROFIT</span><span class="ar">تحت نقطة الدخول</span></div>
+      <div class="lad-note">أوامر السيرفر — شغالة حتى لو قفلت المنصة من جهازك</div>
+    </div>
+  </div>
+
+  <div class="s4-bottom">
+    <div class="close-card r" style="--d:.6s">
+      <div class="ic">🔒</div>
+      <div><b>Close Position</b>
+      <p>إذا بدك تخرج من الصفقة <b>قبل</b> ما توصل عالـ SL أو TP — اضغط Close وبتتقفل عالسعر الحالي، وبيتثبّت الـ <span class="ltr">Profit/Loss</span> النهائي بالـ Balance. مفيدة إذا السعر قرّب من هدفك وخفت يرجع.</p></div>
+    </div>
+    <div class="rule-card r" style="--d:.7s">
+      <div class="ic">🏆</div>
+      <p><b>القاعدة الذهبية:</b> ما في صفقة بدون SL — خاطر بـ <b>1–2%</b> كحد أقصى من الحساب بالصفقة، وهدف منطقي مبني عالشارت: كل <b>$1</b> مخاطرة مقابل <b>$2+</b> هدف <span class="ltr">(R:R = 1:2)</span>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 5 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 05 · Price Action</div>
+  <h2 class="title r" style="--d:.12s">فهم الشارت <span class="en ltr">// Japanese Candlesticks</span></h2>
+  <p class="sub r" style="--d:.18s">الـ Chart هو الترجمة البصرية لحركة السعر عبر الزمن — وأشهر طريقة لعرضها هي الشموع اليابانية، طريقة عمرها أكتر من 100 سنة. كل شمعة بتحكي قصة <b>فترة زمنية كاملة</b> بـ 4 أرقام:</p>
+
+  <div class="s5-grid">
+    <div>
+      <div class="anat r" style="--d:.3s">
+        <svg viewBox="0 0 560 330">
+          <text x="10" y="26" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#3d4e66">HIGH · <tspan font-family="IBM Plex Sans Arabic">أعلى سعر</tspan></text>
+          <line x1="10" y1="34" x2="124" y2="34" stroke="#cfd8e3" stroke-dasharray="4 4"/>
+          <text x="10" y="294" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#3d4e66">LOW · <tspan font-family="IBM Plex Sans Arabic">أدنى سعر</tspan></text>
+          <line x1="10" y1="302" x2="124" y2="302" stroke="#cfd8e3" stroke-dasharray="4 4"/>
+          <line x1="152" y1="92" x2="318" y2="92" stroke="#a8dcc2" stroke-dasharray="4 4"/>
+          <text x="326" y="87" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#0a9c62">CLOSE · <tspan font-family="IBM Plex Sans Arabic">سعر الإغلاق</tspan></text>
+          <line x1="152" y1="244" x2="318" y2="244" stroke="#cfd8e3" stroke-dasharray="4 4"/>
+          <text x="326" y="239" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#16233a">OPEN · <tspan font-family="IBM Plex Sans Arabic">سعر الافتتاح</tspan></text>
+          <line x1="130" y1="34" x2="130" y2="302" stroke="#0a9c62" stroke-width="2.5"/>
+          <rect x="108" y="92" width="44" height="152" rx="6" fill="#0a9c62"/>
+          <line x1="505" y1="54" x2="505" y2="300" stroke="#de3d4b" stroke-width="2.5"/>
+          <rect x="484" y="116" width="42" height="140" rx="6" fill="#de3d4b"/>
+          <text x="505" y="134" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#fff">O</text>
+          <text x="505" y="248" text-anchor="middle" font-family="JetBrains Mono" font-size="13" font-weight="700" fill="#fff">C</text>
+          <text x="505" y="48" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#3d4e66">H</text>
+          <text x="505" y="314" text-anchor="middle" font-family="JetBrains Mono" font-size="11" fill="#3d4e66">L</text>
+        </svg>
+        <div class="anat-cap">الشمعة الحمرا نفس الفكرة بالعكس: الـ <span class="ltr">Open</span> فوق والـ <span class="ltr">Close</span> تحت</div>
+      </div>
+      <div class="wick-note r" style="--d:.45s">🧭 <b>اقرا الشمعة صح:</b> الجسم = المسافة بين Open و Close — كل ما كان أكبر كانت الحركة أقوى. والفوتات <b class="ltr">(Wicks / Shadow)</b> = الصراع: فوتة طويلة معناها إنو في حدا رفض السعر عهاد المستوى بقوة.</div>
+    </div>
+
+    <div>
+      <div class="ohlc">
+        <div class="r" style="--d:.35s"><b>O</b> — Open: أول سعر انفتحت عنده الشمعة ببداية الفترة</div>
+        <div class="r" style="--d:.42s"><b>H</b> — High: أعلى سعر وصلته الشمعة — راس الفوتة العلوي</div>
+        <div class="r" style="--d:.49s"><b>L</b> — Low: أدنى سعر نزلته الشمعة — نهاية الفوتة السفلية</div>
+        <div class="r" style="--d:.56s"><b>C</b> — Close: آخر سعر — هو يلي بيحدد لون الشمعة</div>
+      </div>
+      <div class="bb">
+        <div class="bu r" style="--d:.55s"><b class="up">▲ Bullish</b><br><span class="ltr">Close &gt; Open</span> — المشترين مسيطرين عالفترة هاي</div>
+        <div class="be r" style="--d:.62s"><b class="dn">▼ Bearish</b><br><span class="ltr">Close &lt; Open</span> — البائعين مسيطرين عالفترة هاي</div>
+      </div>
+      <div class="tfs">
+        <div class="tf r" style="--d:.6s"><b>M1</b> دقيقة — سريعة كتير، للسكالبينج</div>
+        <div class="tf r" style="--d:.66s"><b>M5</b> 5 دقايق — زخم قصير المدى</div>
+        <div class="tf r" style="--d:.72s"><b>M15 / M30</b> — توازن السرعة والوضوح</div>
+        <div class="tf r" style="--d:.78s"><b>H1 / H4</b> — الصورة الأوسع للاتجاه</div>
+      </div>
+      <div class="s5-note r" style="--d:.85s">🔎 نفس السعر بالظبط — الـ Timeframe بيغيّر «عدسة» المشاهدة: أصغر = تفاصيل أكتر وضوضاء أكتر · أكبر = اتجاه أوضح وأهدى. اختار حسب أسلوب تداولك، وابدأ بالأكبر قبل الأصغر.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 6 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 06 · Chart Tools + Practice</div>
+  <h2 class="title r" style="--d:.12s">أدوات الشارت الأساسية <span class="en ltr">// Basic Tools</span></h2>
+
+  <div class="s6-grid">
+    <div>
+      <div class="tool r" style="--d:.22s"><div class="ic ic-g">▲</div><div>
+        <h4><b class="g">Support</b> — الدعم</h4>
+        <p>مستوى أو منطقة نزلها السعر قبل هيك وارتد منها <b class="g">للأعلى</b> — بتتصرف متل «أرضية» لأن أوامر الشراء بتتكدس حولها. كل ما المنطقة انلمست وانحترمت أكتر، صار ارجاعها بعدين أرجح — وإذا انحطّمت بوضوح، غالبًا بتحوّل حالها لمقاومة.</p>
+      </div></div>
+      <div class="tool r" style="--d:.3s"><div class="ic" style="background:var(--red-bg);color:var(--red)">▼</div><div>
+        <h4><b class="r">Resistance</b> — المقاومة</h4>
+        <p>مستوى سبق إنو السعر ارتد منه <b class="r">للأسفل</b> — «سقف» بيلتقي عنده عروض البيع. ونفس الفكرة: كل ما انلمس أكتر صار أهم، وإذا انحطم بوضوح ممكن يصير دعم بالمرات الجاية.</p>
+      </div></div>
+      <div class="tool r" style="--d:.38s"><div class="ic ic-a">╱</div><div>
+        <h4><b class="a">Trendline</b> — خط الاتجاه</h4>
+        <p>خط بترسمه بربط قاعين أو أكتر (بالصاعد) أو قمّتين أو أكتر (بالهابط) — كل ما الخط لمس نقاط أكتر وانحترم من دون كسر واضح، كان أقوى. والكسر الواضح بيصير إشارة إنو الاتجاه ممكن يكون عم يتغيّر.</p>
+      </div></div>
+      <div class="trends">
+        <div class="trend u r" style="--d:.46s"><b>▲ UPTREND</b>Higher Lows — قيعان كل مرة أعلى = المشترون مسيطرين</div>
+        <div class="trend d r" style="--d:.52s"><b>▼ DOWNTREND</b>Lower Highs — قمم كل مرة أدنى = البائعون مسيطرين</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="chart-demo r" style="--d:.35s">
+        <svg viewBox="0 0 520 250">
+          <line x1="8" y1="52" x2="512" y2="52" stroke="#de3d4b" stroke-width="1.5" stroke-dasharray="7 5" opacity=".8"/>
+          <text x="10" y="45" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#de3d4b">RESISTANCE · <tspan font-family="IBM Plex Sans Arabic">مقاومة</tspan></text>
+          <line x1="8" y1="211" x2="512" y2="211" stroke="#0a9c62" stroke-width="1.5" stroke-dasharray="7 5" opacity=".8"/>
+          <text x="10" y="227" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#0a9c62">SUPPORT · <tspan font-family="IBM Plex Sans Arabic">دعم</tspan></text>
+          <line x1="95" y1="217" x2="505" y2="97" stroke="#dd8500" stroke-width="2" opacity=".9"/>
+          <text x="348" y="185" font-family="JetBrains Mono" font-size="11" font-weight="700" fill="#dd8500">TRENDLINE · <tspan font-family="IBM Plex Sans Arabic">قيعان صاعدة</tspan></text>
+          <path d="M15,211 L70,52 L120,209 L200,52 L300,160 L380,52 L450,110 L500,72" fill="none" stroke="#2b4a77" stroke-width="2.5" stroke-linejoin="round"/>
+          <circle cx="15" cy="211" r="4.5" fill="#0a9c62"/><circle cx="120" cy="209" r="4.5" fill="#0a9c62"/>
+          <circle cx="300" cy="160" r="4.5" fill="#0a9c62"/><circle cx="450" cy="110" r="4.5" fill="#0a9c62"/>
+          <circle cx="70" cy="52" r="4" fill="#de3d4b"/><circle cx="200" cy="52" r="4" fill="#de3d4b"/><circle cx="380" cy="52" r="4" fill="#de3d4b"/>
+        </svg>
+        <div class="demo-cap">PRICE BOUNCING BETWEEN S/R + RISING LOWS ON TRENDLINE</div>
+      </div>
+      <div class="video-cta r" style="--d:.62s">
+        <div class="play">▶</div>
+        <div>
+          <b>Practical Video — التطبيق العملي</b>
+          <p>رح نطبّق كل يلي فاتنا عمليًا عالمنصة خطوة بخطوة — والفيديو الكامل موجود بـ <b class="ltr">Slide 08</b> 👈</p>
+          <div class="steps">Login → Add Symbols → Setup Chart + Timeframe → First Trade (SL/TP) → Draw S/R & Trendline → Close Trade</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SLIDE 7 ================= -->
+<section class="slide">
+  <div class="kicker r" style="--d:.05s">Slide 07 · Summary & Checklist</div>
+  <h2 class="title r" style="--d:.12s">الخلاصة — Checklist قبل كل صفقة <span class="en ltr">// Final Words</span></h2>
+
+  <div class="s7-grid">
+    <div class="chk r" style="--d:.22s"><div class="num">01</div>
+      <h4>سبب تقني واضح</h4>
+      <p>دخول عالدعم أو المقاومة أو الترند — مش ع«حاسس إنو السعر رح يطلع». التحليل أول، والصفقة بعده.</p>
+    </div>
+    <div class="chk r" style="--d:.3s"><div class="num">02</div>
+      <h4>Stop Loss دايمًا</h4>
+      <p>ما تفتح ولا صفقة بدون SL — إذا مش عارف رح تخرج وين إذا غلطت، يبقى لسا مش جاهز تدخل أصلًا.</p>
+    </div>
+    <div class="chk r" style="--d:.38s"><div class="num">03</div>
+      <h4>مخاطرة محسوبة</h4>
+      <p>1–2% كحد أقصى من الحساب بالصفقة الواحدة — الحساب بينقسم عصفقات كتير، مش صفقة وحدة تحسم كل شي.</p>
+    </div>
+    <div class="chk r" style="--d:.46s"><div class="num">04</div>
+      <h4>نسبة R:R منيحة</h4>
+      <p>هدف <b class="ltr">$2+</b> مقابل كل <b class="ltr">$1</b> مخاطرة (1:2 عالأقل) — هيك بتكفا تكسب وانت غلطان بنص صفقاتك.</p>
+    </div>
+    <div class="chk r" style="--d:.54s"><div class="num">05</div>
+      <h4>حجم منطقي</h4>
+      <p>الـ Lot عقدّ حسابك — مش عقدّ طموحك. ابدأ صغير وكبّر بالتدريج لما تكون نتايجك ثابتة عمدى وقت.</p>
+    </div>
+    <div class="chk r" style="--d:.62s"><div class="num">06</div>
+      <h4>سجّل صفقاتك</h4>
+      <p>Journal بسيط: ليش دخلت؟ شو اللي صار؟ شو الدرس؟ — رح تتعلم من حالك أكتر من أي كورس.</p>
+    </div>
+  </div>
+
+  <div class="s7-final r" style="--d:.72s">
+    <div class="ic">🏆</div>
+    <p><b>آخر نصيحة:</b> ابدأ بحساب <b>Demo</b> وتمرّن لحد ما تصير استراتيجيتك ثابتة، وبعدها انتقل لحساب <b>Real</b> بمبلغ «بتتحمل» خسارته — التداول مش طريق سريع للمصاري، هاد مهارة بتتبني بالصبر والانتظام. بالتوفيق! 🚀</p>
+  </div>
+</section>
+
+<!-- ================= SLIDE 8 — FULLSCREEN VIDEO ================= -->
+<section class="slide vslide">
+  <div id="videoHolder"></div>
+  <button class="vid-open" id="vidOpen" title="افتح الفيديو بتاب جديد">↗</button>
+</section>
+
+</div></div>
+
+<div class="hud">
+  <button id="prev">→</button>
+  <div class="counter"><b id="cur">01</b> / <span id="tot">08</span></div>
+  <button id="next">←</button>
+</div>
+
+<div class="swipe-hint">↔️ اسحب يمين أو شمال للتنقّل بين السلايدات</div>
+
+<div class="ticker">
+  <div class="ticker-track" id="tick"></div>
+</div>
+
+<script>
+/* ---------- deck navigation ---------- */
+const slides=[...document.querySelectorAll('.slide')];
+let i=0;
+const cur=document.getElementById('cur'),prog=document.getElementById('prog'),pages=document.getElementById('pages');
+document.getElementById('tot').textContent=String(slides.length).padStart(2,'0');
+slides.forEach((_,k)=>{const d=document.createElement('i');d.onclick=()=>go(k);pages.appendChild(d);});
+function render(){
+  slides.forEach((s,k)=>{
+    const on=k===i;
+    s.classList.toggle('active',on);
+    if(on)s.scrollTop=0;
+    if(!on)s.querySelectorAll('video').forEach(v=>v.pause());
+  });
+  cur.textContent=String(i+1).padStart(2,'0');
+  prog.style.width=((i+1)/slides.length*100)+'%';
+  [...pages.children].forEach((p,k)=>p.classList.toggle('on',k===i));
+}
+function go(k){i=(k+slides.length)%slides.length;render();}
+document.getElementById('next').onclick=()=>go(i+1);
+document.getElementById('prev').onclick=()=>go(i-1);
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key===' '||e.key==='PageDown')go(i+1);
+  if(e.key==='ArrowRight'||e.key==='PageUp')go(i-1);
+  if(e.key==='Home')go(0); if(e.key==='End')go(slides.length-1);
+});
+
+/* ---------- responsive scaling ---------- */
+const mqMobile=matchMedia('(max-width:920px)');
+function fit(){
+  const deck=document.getElementById('deck');
+  if(mqMobile.matches){deck.style.transform='none';return;}
+  const s=Math.min((innerWidth-36)/1280,(innerHeight-108)/720);
+  deck.style.transform='scale('+s+')';
+}
+addEventListener('resize',fit);
+if(mqMobile.addEventListener)mqMobile.addEventListener('change',fit);else mqMobile.addListener(fit);
+fit();
+
+/* ---------- touch swipe ---------- */
+let tx=0,ty=0;
+addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>65&&Math.abs(dx)>Math.abs(dy)*1.4){ dx<0?go(i+1):go(i-1); }
+},{passive:true});
+
+render();
+
+/* ================================================================
+   ✏️ إعدادات الفيديو
+   VIDEO_TYPE: "drive" (جوجل درايف) / "file" (ملف محلي) / "youtube"
+   ================================================================ */
+const VIDEO_TYPE="drive";
+const VIDEO_DRIVE="1-BjF1N4S8dfaOuCiEp6sroNwgg6sAseB"; /* ← رابط الفيديو تبعك */
+const VIDEO_FILE="IMG_6511.mov";
+const VIDEO_YT="";
+
+const holder=document.getElementById('videoHolder');
+document.getElementById('vidOpen').onclick=()=>{
+  if(VIDEO_TYPE==='drive'&&VIDEO_DRIVE)window.open('https://drive.google.com/file/d/'+VIDEO_DRIVE+'/view','_blank');
+  else if(VIDEO_TYPE==='youtube'&&VIDEO_YT)window.open('https://www.youtube.com/watch?v='+VIDEO_YT,'_blank');
+};
+
+function buildPlayer(){
+  if(VIDEO_TYPE==='drive'&&VIDEO_DRIVE){
+    holder.innerHTML=`<iframe src="https://drive.google.com/file/d/${VIDEO_DRIVE}/preview" title="MT5 Demo" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+  }else if(VIDEO_TYPE==='youtube'&&VIDEO_YT){
+    holder.innerHTML=`<iframe src="https://www.youtube.com/embed/${VIDEO_YT}" title="MT5 Demo" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+  }else{
+    const v=document.createElement('video');
+    v.controls=true;
+    v.playsInline=true;
+    v.setAttribute('playsinline','');
+    v.preload='metadata';
+    v.src=VIDEO_FILE;
+    v.style.background='#000';
+    holder.appendChild(v);
+  }
+}
+buildPlayer();
+
+/* ---------- terminal tabs ---------- */
+document.querySelectorAll('.term-tab').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.term-tab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tview').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById(b.dataset.v).classList.add('on');
+});
+
+/* ---------- mini chart ---------- */
+const mc=document.getElementById('miniChart');
+const candles=[
+ {o:88,c:64,h:54,l:96,g:1},{o:64,c:44,h:36,l:70,g:1},{o:44,c:62,h:34,l:70,g:0},
+ {o:62,c:78,h:58,l:88,g:0},{o:78,c:52,h:44,l:84,g:1},{o:52,c:30,h:22,l:58,g:1},
+ {o:30,c:50,h:24,l:58,g:0},{o:50,c:26,h:16,l:56,g:1},{o:26,c:42,h:20,l:50,g:0},
+ {o:42,c:18,h:10,l:48,g:1}];
+let svg='';
+candles.forEach((c,k)=>{
+  const x=14+k*30, cx=x+9, top=Math.min(c.o,c.c), h=Math.abs(c.o-c.c)||2, col=c.g?'#0a9c62':'#de3d4b';
+  svg+=`<line x1="${cx}" y1="${c.h}" x2="${cx}" y2="${c.l}" stroke="${col}" stroke-width="2"/>
+        <rect x="${x}" y="${top}" width="18" height="${h}" rx="3" fill="${col}"/>`;
+});
+mc.innerHTML=svg;
+
+/* ---------- ticker ---------- */
+const data=[['EURUSD','1.0854',0.12],['GBPUSD','1.2673',-0.08],['XAUUSD','2338.40',0.45],['USDJPY','155.72',-0.21],['BTCUSD','67240',1.32],['US30','39112',0.28],['ETHUSD','3512',-0.64],['NAS100','18234',0.51]];
+const t=document.getElementById('tick');
+const html=data.map(d=>`<span>${d[0]} <b>${d[1]}</b> <span class="${d[2]>=0?'up':'dn'}">${d[2]>=0?'▲':'▼'}${Math.abs(d[2])}%</span></span>`).join('');
+t.innerHTML=html+html;
+</script>
+</body>
+</html>
